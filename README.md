@@ -31,19 +31,21 @@ How ```OnPush``` vs ```Default``` works
 -----
 <i>Please note, that the following might be inaccurate due to lack of angular documentation and findings based on trial and error. Please report an issue if you spot any errors.</i>
 
-Angular uses Zones (its own ngZone to be more precise) to override browser APIs (like ```setTimeout```, event handlers, etc.) so that it can tell when various async callbacks get called in the components. Whenever any async action happens Angular goes through all of the components (starting at the top and moving deeper in the component tree) and updates their templates one by one. If it meets a component going down a tree with ```OnPush``` detection strategy, it checks whether
-> - any refs of any ```@Input``` properties on that component have changed
-
-Or
-> - the component was marked for check
-
-and proceeds as follows:
+Angular uses Zones (its own ngZone to be more precise) to override browser APIs (like ```setTimeout```, event handlers, etc.) so that it can tell when various async callbacks get called in the components. Whenever any async action happens Angular goes through all of the components (starting at the top and moving deeper in the component tree) and updates their templates one by one. If it meets a component going down a tree with ```OnPush``` detection strategy, it checks whether the component was <i><b>marked for check</b></i> and proceeds as follows:
 > - If yes, then angular updates the template for that component and proceeds deeper into the tree,
 > - If no, then it does NOT update the template for that component and STOPS, not trying to update any templates for deeper components.
 
-You can mark a component for check manually by injecting ```cd: ChangeDetectorRef``` in the constructor and calling ```cd.markForCheck();```. Angular marks components for check whenever
-a DOM event gets triggered in the component template (or using ```@HostListener``` and possibly other edge cases). In both cases, angular marks that component and all ancestors components for check and triggers template update action.
+You can mark a component for check manually by injecting ```cd: ChangeDetectorRef``` in the constructor and calling ```cd.markForCheck();``` at any point.
+Angular marks components for check whenever any of the following happen:
+> 1. Any ```@Input``` property changes its reference (if it is an object, mutations are ignored).
+> 2. a DOM event gets triggered in that component template, e.g. it has ```(click)=doSth();```
 
+**Note:** There are some other cases when angular marks components for check, one that we found is ```@HostListener``` annotation and possibly others.
+
+In all cases, angular marks that component and **all ancestor** components for check and triggers template update action.
+
+DOM event examples
+===
 Examples of DOM events that trigger a marking for check:
 ```
 1.
@@ -51,6 +53,7 @@ Examples of DOM events that trigger a marking for check:
 onScroll(event) {
     console.log('Body scroll just happened');
 }
+
 2.
 <button (click)='onClick()' > Click me! </button>
 3.
