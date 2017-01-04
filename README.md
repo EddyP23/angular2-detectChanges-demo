@@ -5,11 +5,11 @@ Material on the topic
 -------------
 > **Please get familiar with the following** (that covers this topic pretty well):
 
-> - <a href="https://www.lucidchart.com/techblog/2016/05/04/angular-2-best-practices-change-detector-performance/"> Angular 2 performance problems in general </a> This alone might solve all your performance problems.
+> - <a href="https://www.lucidchart.com/techblog/2016/05/04/angular-2-best-practices-change-detector-performance/"> Angular 2 performance problems in general.</a> This alone might solve all your performance problems.
 
 > - <a href="https://www.youtube.com/watch?v=8aGhZQkoFbQ">JS event loop talk</a>. This covers how async stuff works in JS. Async call examples:
 >  - ```setTimeout()```
->  - ajax requests
+>  - ```ajax``` requests
 >  - DOM event listeners ```onClick()``` and etc.
 
 > - Read this <a href="http://blog.thoughtram.io/angular/2016/02/22/angular-2-change-detection-explained.html">post </a>, or if you are lazy like me, go and watch <a href="https://www.youtube.com/watch?v=CUxD91DWkGM">this video</a> which explains the difference between two different strategies that angular 2 uses for detection of changes:
