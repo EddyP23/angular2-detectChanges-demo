@@ -1,120 +1,81 @@
-# Angular 2 Starter
+Investigation onto how Angular 2 detects changes
+===================
 
-[![Build Status](https://travis-ci.org/antonybudianto/angular2-starter.svg?branch=master)](https://travis-ci.org/antonybudianto/angular2-starter)
-[![Build status](https://ci.appveyor.com/api/projects/status/d5b3a9nnxnv5bxa5/branch/master?svg=true)](https://ci.appveyor.com/project/antonybudianto/angular2-starter/branch/master)
-[![Coverage Status](https://coveralls.io/repos/github/antonybudianto/angular2-starter/badge.svg?branch=master)](https://coveralls.io/github/antonybudianto/angular2-starter?branch=master)
-[![Dependency Status](https://david-dm.org/antonybudianto/angular2-starter.svg)](https://david-dm.org/antonybudianto/angular2-starter)
-[![devDependency Status](https://david-dm.org/antonybudianto/angular2-starter/dev-status.svg)](https://david-dm.org/antonybudianto/angular2-starter#info=devDependencies)
-[![Dependency Status](https://dependencyci.com/github/antonybudianto/angular2-starter/badge)](https://dependencyci.com/github/antonybudianto/angular2-starter)
+Material on the topic
+-------------
+> **Please get familiar with the following** (that covers this topic pretty well):
 
-> Live Production Build [Demo](https://antonybudianto.github.io/angular2-starter/)    
+> - <a href="https://www.lucidchart.com/techblog/2016/05/04/angular-2-best-practices-change-detector-performance/"> Angular 2 performance problems in general </a> This alone might solve all your performance problems.
 
-> [Angular Webpack Starter](https://github.com/antonybudianto/angular-webpack-starter) is out! Featuring [AoT compilation](https://angular.io/docs/ts/latest/cookbook/aot-compiler.html), [Lazy loaded module](https://angular.io/docs/ts/latest/api/router/index/Routes-type-alias.html#!#sts=Lazy%20Loading), [Tree-shaking](https://medium.com/@Rich_Harris/tree-shaking-versus-dead-code-elimination-d3765df85c80#.103r6vl29) with [Webpack 2](https://webpack.github.io/docs/roadmap.html#2)
+> - <a href="https://www.youtube.com/watch?v=8aGhZQkoFbQ">JS event loop talk</a>. This covers how async stuff works in JS. Async call examples:
+>  - ```setTimeout()```
+>  - ajax requests
+>  - DOM event listeners ```onClick()``` and etc.
 
-## Introduction
-Welcome to Angular 2 Starter!
-This starter contains almost everything you need to start developing [Angular 2](https://angular.io/).
+> - Read this <a href="http://blog.thoughtram.io/angular/2016/02/22/angular-2-change-detection-explained.html">post </a>, or if you are lazy like me, go and watch <a href="https://www.youtube.com/watch?v=CUxD91DWkGM">this video</a> which explains the difference between two different strategies that angular 2 uses for detection of changes:
+>  - ```changeDetection: ChangeDetectionStrategy.Default```
+>  - ```changeDetection: ChangeDetectionStrategy.OnPush```
 
-### Why choose this starter?
-- Extensible via [ngstarter extensions](https://github.com/ngstarter)
-- Complete workflow from serve, lint, unit test, e2e test, to bundling
-- Support file-based and strong-typed [Environment Variables](https://github.com/antonybudianto/angular2-starter/wiki/Environment-Variables)
-- 100% code coverage
-- 100% [CI/CD](https://github.com/antonybudianto/angular2-starter/wiki/Continuous-Integration) pipeline ready
-- No global package installation
-- No module bundler coupling
+Quick Demo Overview
+-----
+This demo consists of 5 components:
+> - ```AppComponent``` (Default)
+> - ```ParentDefaultComponent``` (Default)
+> - ```ParentOnpushComponent``` **(OnPush)**
+> - ``` ChildDefaultComponent``` (Default)
+> - ```ChildOnpushComponent``` (Default)
 
-### What's included?
-* [npm](https://www.npmjs.com/) for package manager
-* [TypeScript](http://www.typescriptlang.org/) for the base language
-  * with [Typings](https://github.com/typings/typings) for TypeScript definition manager
-* [Gulp](http://gulpjs.com/) for workflow (from *serve*, *watch*, *compile*, *test* to *build*)
-* [Browsersync](https://www.browsersync.io/) for development server & reload capability
-* [SystemJS](https://github.com/systemjs/systemjs) for module loader
-* [Codelyzer](https://github.com/mgechev/codelyzer) for static code analyzer
-* [Karma](http://karma-runner.github.io/) for test-runner
-* [Jasmine](http://jasmine.github.io/) for test framework
-* [Istanbul](https://github.com/gotwarlost/istanbul) for test coverage
-  * with [Remap Istanbul](https://github.com/SitePen/remap-istanbul) for remapping Javascript to TypeScript coverage
-* [SystemJS Builder](https://github.com/systemjs/builder) or [Webpack](https://webpack.github.io/) for module bundling in production
+<img src="https://raw.githubusercontent.com/EddyP23/angular2-detectChanges-demo/master/readme-images/demo-components.png">
 
-Please visit the [wiki](https://github.com/antonybudianto/angular2-starter/wiki) for more details.
+How ```OnPush``` vs ```Default``` works
+-----
+<i>Please note, that the following might be inaccurate due to lack of angular documentation and findings based on trial and error. Please report an issue if you spot any errors.</i>
 
-## Prerequisites
-You need to have [Node.js and npm](https://nodejs.org/en/)
-- Support Node v4 - latest
-- Support npm v3 - latest
+Angular uses Zones (its own ngZone to be more precise) to override browser APIs (like ```setTimeout```, event handlers, etc.) so that it can tell when various async callbacks get called in the components. Whenever any async action happens Angular goes through all of the components (starting at the top and moving deeper in the component tree) and updates their templates one by one. If it meets a component going down a tree with ```OnPush``` detection strategy, it checks whether
+> - any refs of any ```@Input``` properties on that component have changed
 
-[Global Gulp CLI](https://github.com/gulpjs/gulp/blob/master/docs/getting-started.md) is not required, since you can map them to npm scripts, but a nice to have for development purpose.
+Or
+> - the component was marked for check
 
-## Installation
-Download the starter from [releases page](https://github.com/antonybudianto/angular2-starter/releases)
+and proceeds as follows:
+> - If yes, then angular updates the template for that component and proceeds deeper into the tree,
+> - If no, then it does NOT update the template for that component and STOPS, not trying to update any templates for deeper components.
 
-Go to the starter directory and install the packages:
-```bash
-npm install
+You can mark a component for check manually by injecting ```cd: ChangeDetectorRef``` in the constructor and calling ```cd.markForCheck();```. Angular marks components for check whenever
+a DOM event gets triggered in the component template (or using ```@HostListener``` and possibly other edge cases). In both cases, angular marks that component and all ancestors components for check and triggers template update action.
+
+Examples of DOM events that trigger a marking for check:
+```
+1.
+@HostListener('body:wheel', ['$event'])
+onScroll(event) {
+    console.log('Body scroll just happened');
+}
+2.
+<button (click)='onClick()' > Click me! </button>
+3.
+setTimeout(() => {
+    ...
+    this.cd.markForCheck();
+}, x);
+
 ```
 
-## Start
-Let's start up the server, run:
-```bash
-npm start
+Examples that don't mark for check any component (but do start angular update templates action):
+```
+1.
+constructor(public renderer: Renderer) {
+    this.renderer.listenGlobal('body', 'dblclick', (event) => {
+            console.log('DbClicked in the body');
+    });
+}
+2.
+setTimeout(() => {...}, x);
 ```
 
-and done! The browser will popup and you can start trying Angular 2!
-Every changes to the file will refresh the browser automatically
-and it'll also compile your changed TypeScripts files to Javascript files.
+When ref of @Input gets updated
+===
+When trying to implement a component with ```OnPush``` detection strategy, you need to be careful with ```@Input``` properties. Please make sure you do one of the following:
+> 1.  Use primitives: ```string, number, boolean```
+> 2. Use immutable objects (via e.g. ```immutablejs```)
 
-## Testing
-This starter comes with testing gulp workflow
-
-### Unit testing
-Just run
-```bash
-npm test
-```
-and it'll compile all TypeScript files, start Karma, then remap Istanbul coverage so that it shows TypeScript coverage, not the transpiled JavaScript coverage.
-
-![Coverage result](http://s33.postimg.org/w7m9ckdkf/Screen_Shot_2016_06_04_at_8_15_53_AM.png)
-
-### E2E testing
-Firstly start the server:
-```bash
-npm start
-```
-To begin testing, run:
-```bash
-npm run e2e
-```
-and it'll compile all E2E spec files in `/src/test/e2e/*.spec.ts`, boot up Selenium server then launches Chrome browser.
-
-## Production
-> All build tasks will run the `gulp test`, the bundle will only be created if the test passed.
-
-> For more details, visit [Continuous Integration  wiki](https://github.com/antonybudianto/angular2-starter/wiki/Continuous-Integration)
-
-You can create production build by running:
-```bash
-npm run build
-```
-or you can create production build and then serve it using Browsersync by running:
-```bash
-npm run serve-build
-```
-The starter defaults to bundle using [SystemJS Builder extension](https://github.com/ngstarter/systemjs-extension).
-There is [Webpack extension](https://github.com/ngstarter/webpack-extension) available too, feel free to swap it as you like.
-
-## Extension
-You can extend this starter with many extensions built by the community. Browse the extensions [here](https://github.com/ngstarter)
-
-## Contributing
-Feel free to submit a PR if there are any issues or new features, please read [this](https://github.com/antonybudianto/angular2-starter/wiki/Contributing) before
-
-## Special thanks
-* For all contributors who have helped this starter improvement
-* John Papa for his awesome [angular-styleguide](https://github.com/johnpapa/angular-styleguide) and [Tour of Heroes](https://github.com/johnpapa/angular2-tour-of-heroes)
-* Julie Ralph for her [ng2-test-seed](https://github.com/juliemr/ng2-test-seed) which helped me a lot to get started with testing feature
-* Minko Gechev for his [angular2-seed](https://github.com/mgechev/angular2-seed) and [angular2-ngc-rollup-build](https://github.com/mgechev/angular2-ngc-rollup-build) which helped a lot
-
-## License
-MIT
